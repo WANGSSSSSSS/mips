@@ -1,7 +1,7 @@
 module ID(
   input clk,  input write, input rst,input flush,
   input [31:0]pc, input [31:0] inst,
-  input [1:0] busB_select, input [1:0] busA_select,
+  input [1:0] busA_select, input [1:0] busB_select, //input [1:0] cp0_select,
   input [31:0] exe_data,
   input [31:0] mem_data,
   input [31:0] wb_data,
@@ -39,7 +39,7 @@ module ID(
   output reg cp0Write_out,
   output reg [3:0] mem_wen_out,
   output reg [3:0] mem_ren_out,
-  output reg[31:0]epc_out,
+  output [31:0]epc_out,
   output reg pc_change
    );
 
@@ -62,11 +62,13 @@ wire [31:0] extend_immS, extend_immU;
 assign extend_immS = {{16{imm[15]}},imm[15:0]};
 assign extend_immU = {16'h0000,imm};
 
+assign epc_out = epc;
+
 select4 sel_busA(busA_select, busA, exe_data, mem_data, wb_data, final_busA);
 select4 sel_busB(busB_select, busB, exe_data, mem_data, wb_data, final_busB);
+//select4 sel_cp0bus(cp0_select, epc, exe_data, mem_data, wb_data, final_epc);
 
-
-RegisterFile  rf(clk, wb_rf_wen&!except, rst, rs, rt, wb_rf_wnum, wb_data, busA, busB);
+RegisterFile  rf(clk, wb_rf_wen, rst, rs, rt, wb_rf_wnum, wb_data, busA, busB);
 
 CP0 cp0(clk,  wb_cp0_wen, rst, except,
                   wb_cp0_epc,
@@ -102,7 +104,7 @@ Control control(  clk,	inst,	aluop,	pc8,	aluBselect,		regWrite,		Cp0Write,
         				MemWrite,	RegToWrite,		MemToReg,		Jump,		epcInst,			B_C,			memReadEn,
         				aluAselect,		badInst , pc_change_
         				);
-wire reg_num;
+wire [4:0]reg_num;
 select4_5 select_reg(RegToWrite, rd, rt, 5'b11111, 5'b00000, reg_num);
 
 
@@ -121,15 +123,15 @@ bc_inst <= B_C & {2{!flush& !badInst}};
 rd_out <= rd;
 shamt_out <= shamt;
 reg_num_out <= reg_num;
-aluop_out <= aluop;
+aluop_out <= aluop & {5{!flush}};
 aluAselect_out <= aluAselect;
 aluBselect_out <= aluBselect;
 pc8_out <= pc8;
 regWrite_out <= regWrite& !flush & !badInst;
 cp0Write_out <= Cp0Write & !flush & !badInst;
-mem_ren_out <= memReadEn;
+mem_ren_out <= memReadEn & {4{!flush}};
 mem_wen_out <= MemWrite & {4{!flush& !badInst}};
-epc_out <= epc;
+//epc_out <= epc;
 cp0_bus_out <= cp0_bus;
 index_out <= index;
 pc_change <= pc_change_;
@@ -157,7 +159,7 @@ regWrite_out <= 0 ;
 cp0Write_out <= 0;
 mem_ren_out <= 0;
 mem_wen_out <= 0;
-epc_out <= 0;
+//epc_out <= 0;
 cp0_bus_out <= 0;
 index_out <= 0;
 pc_change <= 0;

@@ -1,22 +1,12 @@
-module detect(rs, rt, exe_wen, exe_wnum, mem_wen, mem_wnum, wb_wen, wb_wnum, rs_select, rt_select);
-input exe_wen, mem_wen, wb_wen;
-input [4:0] rs,rt, exe_wnum, mem_wnum, wb_wnum;
+module detect(rs, rt,  exe_wen, exe_wnum, mem_wen, mem_wnum, wb_wen, wb_wnum, rs_select, rt_select/*,
+                              exe_cp0_wen, exe_cp0_wnum, mem_cp0_wen,mem_cp0_wnum, wb_cp0_wen ,wb_cp0_wnum, cp0_select*/);
+input exe_wen, mem_wen, wb_wen/* ,exe_cp0_wen, mem_cp0_wen, wb_cp0_wen*/;
+input [4:0] rs,rt, exe_wnum, mem_wnum, wb_wnum/*, exe_cp0_wnum, mem_cp0_wnum, wb_cp0_wnum*/;
 
-output reg [1:0] rs_select, rt_select;
+output  [1:0] rs_select, rt_select;
 
-always @ ( * ) begin
-case({exe_wen, mem_wen, wb_wen})
-3'b000 : begin rs_select = 2'b00; rt_select = 2'b00; end
-3'b100 : begin rs_select = (rs == exe_wen) ? 2'b01 : 2'b00;  rt_select = (rt == exe_wen) ? 2'b01 : 2'b00;  end
-3'b101 : begin rs_select = (rs == exe_wen) ? 2'b01 : 2'b00;  rt_select = (rt == exe_wen) ? 2'b01 : 2'b00;  end
-3'b110 : begin rs_select = (rs == exe_wen) ? 2'b01 : 2'b00;  rt_select = (rt == exe_wen) ? 2'b01 : 2'b00;  end
-3'b111 : begin rs_select = (rs == exe_wen) ? 2'b01 : 2'b00;  rt_select = (rt == exe_wen) ? 2'b01 : 2'b00;  end
-3'b010 : begin rs_select = (rs == mem_wen) ? 2'b10 : 2'b00;  rt_select = (rt == mem_wen) ? 2'b10 : 2'b00;  end
-3'b011 : begin rs_select = (rs == mem_wen) ? 2'b10 : 2'b00;  rt_select = (rt == mem_wen) ? 2'b10 : 2'b00;  end
-3'b001 : begin rs_select = (rs == wb_wen) ? 2'b11 : 2'b00;  rt_select = (rt == wb_wen) ? 2'b01 : 2'b00;  end
-default : begin rs_select = 2'b00; rt_select = 2'b00; end
-endcase
-end
-
+assign rs_select = (exe_wen & (rs == exe_wnum)) ?  2'b01 :  (mem_wen & (rs == mem_wnum)) ? 2'b10: (wb_wen & (rs == wb_wnum)) ? 2'b11 : 2'b00;
+assign rt_select = (exe_wen & (rt == exe_wnum)) ?  2'b01 :  (mem_wen & (rt == mem_wnum)) ? 2'b10: (wb_wen & (rt == wb_wnum)) ? 2'b11 : 2'b00;
+//assign cp0_select =   (exe_cp0_wen & (rd == exe_cp0_wnum)) ?  2'b01 :  (mem_cp0_wen & (rd == mem_cp0_wnum)) ? 2'b10: (wb_cp0_wen & (rd == wb_cp0_wnum)) ? 2'b11 : 2'b00;
 
 endmodule

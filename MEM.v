@@ -128,6 +128,7 @@ module MEM(input clk, input write,input rst, input flush,//input hit
   output reg Int_out,
   output reg bad_inst_out,
   output reg [1:0] bc_inst_out,
+  output to_exe,
   output reg addressError_read,
   output reg addressError_write,
   output reg [31:0]badAddress,
@@ -149,34 +150,36 @@ module MEM(input clk, input write,input rst, input flush,//input hit
     memSelect memselect(memReadEn, address[1:0], sram_data_read, mem_data_, addressErrorIn);
     memRselect memrselect(memWriteEn, address[1:0],sram_wen_,exe_data,sram_data_write_, addressErrorOut);
 
-    assign mem_value = mem_to_reg ? mem_data_ : exe_data;
+    assign mem_value = mem_to_reg ? mem_data_ : address;
     assign mem_data = mem_value;
     assign sram_data_write = sram_data_write_;
     assign sram_address  = (address) & {32{!addressErrorIn & !addressErrorOut}};
     assign sram_wen = sram_wen_ &  {4{!addressErrorOut & !flush}};
 
-    assign stall_out = ({to_stall,memReadEn!=1'b0} == 2'b01) & !addressErrorIn;
+    assign to_exe = addressErrorIn | addressErrorOut;
+
+    assign stall_out = ({to_stall,memReadEn!=4'b0000} == 2'b01) & !addressErrorIn & !flush;
 
     always @ ( posedge clk ) begin
 
     if(write) begin
     overflow_out <= overflow;
-    Int_out <= Int_out;
+    Int_out <= Int;
     bad_inst_out <=  bad_inst;
     bc_inst_out <=  bc_inst;
     addressError_read <=  addressErrorIn;
     addressError_write <=  addressErrorOut;
     wb_data_out <= mem_data;
-    reg_wen_out <=  reg_wen & !flush;
+    reg_wen_out <=  reg_wen & !flush & !addressErrorIn;
     reg_num_out <= reg_num;
-    cp0_wen_out <=  cp0_wen & !flush;
+    cp0_wen_out <=  cp0_wen & !flush& !addressErrorIn;
     cp0_sel_out <= cp0_sel;
     cp0_num_out <=  cp0_num;
     badAddress <= address;
     pc_out <= pc;
     //HIT <= hit;
-    to_stall <= (memReadEn !=0);
-	pc_change_out <=  pc_change;
+    to_stall <= (memReadEn !=4'b0000);
+	  pc_change_out <=  pc_change;
     end
 
     if(!rst | stall_out) begin
@@ -194,8 +197,8 @@ module MEM(input clk, input write,input rst, input flush,//input hit
     cp0_num_out <=  0;
     badAddress <= 0;
     pc_out <= pc;
-    to_stall <= 1'b0;
-	pc_change_out <= 1'b0;
+    //to_stall <= 1'b0;
+	   pc_change_out <= 1'b0;
     end
     end
 

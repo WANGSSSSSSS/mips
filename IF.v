@@ -15,7 +15,7 @@ begin
 pcOut <= pc;
 end
 
-Flush <= flush;
+Flush <= flush | !write&Flush;
 
 if(!rst)
 begin
