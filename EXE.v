@@ -22,10 +22,11 @@ module EXE(input clk, input write, input rst, input flush,
   input [2:0] cp0_sel,
   input [3:0] memReadEn,
   input [3:0] memWriteEn,
-  input mem_to_reg;
+  input mem_to_reg,
+  input pc_change,
 
-  output [31:0] pc_out;
-  output  [1:0]pc_select,
+  output reg[31:0] pc_out,
+  output reg [1:0]pc_select,
   output [31:0]pc_branch,
   output [31:0] pc_jump,
   output stall_out,
@@ -41,24 +42,25 @@ output reg [2:0] cp0_sel_out,
   output reg [31:0] exe_data_out,
   output reg [3:0] memReadEn_out,
   output reg [3:0] memWriteEn_out,
-  output reg mem_to_reg_out;
+  output reg mem_to_reg_out,
   output reg overflow_out,
   output reg Int_out,
   output reg bad_inst_out,
   output reg [1:0] bc_inst_out,
 
   output [31:0] data_address,
+  output reg pc_change_out
 
   //input hit,
   //output reg hit_out
   );
 
 
-wire [31:0]aluA,aluB, alu_out,alu_out, alu_value;
+wire [31:0]aluA,aluB, alu_out, alu_value;
 wire branch,overflow,stall, Int;
 
-select4 select_aluA(aluAselect, busA, cp0_bus, aluA);
-select4 select_aluB(aluBselect, busB, immS, immU, {immU[15:0], 16'h0000}, 32'h00000000, aluB);
+select2 select_aluA(aluAselect, busA, cp0_bus, aluA);
+select4 select_aluB(aluBselect, busB, immS, immU, {immU[15:0], 16'h0000}, aluB);
 
 assign stall_out = stall;
 assign alu_value = pc8 ? pc +8 : alu_out;
@@ -71,15 +73,16 @@ assign data_address = alu_out & {32{memReadEn != 4'b0000}};   // TODO
 
 always@(*) begin
 case({jump_inst[1],branch,epc_inst})
-3'b100 : pc_select <= 2'b10;
-3'b110:  pc_select <= 2'b10;
-3'b111:  pc_select <= 2'b11;
-3'b011 : pc_select <= 2'b01;
-3'b010 : pc_select <= 2'b01;
-3'b001 : pc_select <= 2'b11;
-default : pc_select <= 2'b00;
-end
+3'b100 : pc_select = 2'b10;
+3'b110:  pc_select = 2'b10;
+3'b111:  pc_select = 2'b11;
+3'b011 : pc_select = 2'b01;
+3'b010 : pc_select = 2'b01;
+3'b001 : pc_select = 2'b11;
+default : pc_select = 2'b00;
 endcase
+end
+
 
 ALU2  alu(aluop,aluA,aluB,clk,shamt,alu_out,branch,overflow,stall);
 
@@ -102,6 +105,7 @@ cp0_sel_out <= cp0_sel;
 cp0_num_out <=  cp0_num;
 pc_out <= pc;
 mem_to_reg_out <= mem_to_reg;
+pc_change_out <=  pc_change;
 ///hit_out <= !hit;
 end
 
@@ -116,6 +120,7 @@ bad_inst_out <=  0;
 bc_inst_out <=  0;
 pc_out <= 0;
 mem_to_reg_out <= 0;
+pc_change_out <=  pc_change;
 //hit_out <= 1'b0;
 end
 

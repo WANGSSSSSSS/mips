@@ -1,4 +1,4 @@
-module mycpu_top(
+module mips5(
 input clk,
 input resetn,
 input [5:0]int,
@@ -21,34 +21,37 @@ output[31:0] debug_wb_rf_wdata);
 
 wire wb_flush, wb_stall, except;
 
+wire id_pc_change, exe_pc_change, mem_pc_change, pc_change;
 
 wire if_write;
 wire [31:0] id_pc, id_inst, if_pc; // TODO
-IF If(clk,if_write, resetn,inst_sram_rdata,id_inst,if_pc,id_pc);
+IF If(clk,if_write, resetn,(wb_flush| pc_select !=2'b00),inst_sram_rdata,id_inst,if_pc,id_pc);
+
+assign inst_sram_wdata = 0;
 
 
-wire exe_rf_wen, mem_rf_wen, wb_rf_wen;
-wire [4:0] exe_rf_wnum, mem_rf_wnum,  wb_rf_wnum;
+wire exe_rf_wen, wb_rf_wen, id_reg_wen/*, mem_rf_wen*/;
+wire [4:0] exe_rf_wnum,  wb_rf_wnum/*, mem_rf_wnum*/,id_reg_num, wb_cp0_wnum;
 wire [2:0] wb_cp0_sel;
 wire [1:0]busA_select, busB_select;
 wire [31:0] exe_rf_data, mem_rf_data, wb_rf_data;
-wire wb_rf_wen, wb_cp0_wen;
+wire wb_cp0_wen;
 wire [31:0] wb_cp0_epc, wb_cp0_cause, wb_cp0_state, wb_cp0_badAdddress;
 
-detect  hazad_detect(id_inst[], id_inst[], id_rf_wen, id_rf_wnum, exe_rf_wen, exe_rf_wnum, wb_rf_wen, wb_rf_wnum, busA_select, busB_select);
+detect  hazad_detect(id_inst[25:21], id_inst[20:16], id_reg_wen, id_reg_num, exe_rf_wen, exe_rf_wnum, wb_rf_wen, wb_rf_wnum, busA_select, busB_select);
 
 
 wire id_write;
-wire id_bad_inst, id_epc_inst, id_mem_to_reg, id_aluAselect, id_pc8, id_reg_wen, id_cp0_wen;
+wire id_bad_inst, id_epc_inst, id_mem_to_reg, id_aluAselect, id_pc8,  id_cp0_wen;
 wire [1:0] id_jump_inst, id_bc_inst, id_aluBselect;
 wire [2:0] id_cp0_sel;
 wire [3:0] id_mem_wen;
 wire [3:0] id_mem_ren;
-wire [4:0] id_rd, id_reg_num, id_aluop, id_shamt;
+wire [4:0] id_rd, id_aluop, id_shamt;
 wire [31:0] id_immU, id_immS, id_busA, id_busB, id_cp0_bus;
 wire [25:0] id_index;
 wire [31:0] exe_pc, pc_epc;
-ID Id(clk, id_write, resetn, wb_flush, wb_stall,
+ID Id(clk, id_write, resetn, wb_flush,
   id_pc, id_inst,
   busA_select, busB_select,
  exe_rf_data,
@@ -71,6 +74,7 @@ id_mem_to_reg,
 id_jump_inst,
 id_bc_inst,
 id_rd,
+id_cp0_sel,
 id_reg_num,
 id_immU,
 id_immS,
@@ -87,7 +91,8 @@ id_reg_wen,
 id_cp0_wen,
 id_mem_wen,
 id_mem_ren,
-pc_epc
+pc_epc,
+id_pc_change
   );
 wire exe_write, exe_stall, exe_reg_wen, exe_cp0_wen, exe_overflow, exe_Int, exe_bad_inst;
 wire exe_mem_to_reg;
@@ -100,7 +105,7 @@ wire[31:0] exe_mem_data, exe_busB, mem_pc;
 
 wire[31:0] data_address_read; //TODO
 
-  EXE exe( clk, exe_write, resetn wb_flush, wb_stall,
+  EXE exe( clk, exe_write, resetn, wb_flush, 
     exe_pc,
     id_aluop,
     id_shamt,
@@ -120,10 +125,12 @@ wire[31:0] data_address_read; //TODO
     id_reg_wen,
     id_reg_num,
     id_cp0_wen,
+	id_rd,
     id_cp0_sel,
     id_mem_ren,
     id_mem_wen,
     id_mem_to_reg,
+	id_pc_change,
     mem_pc,
     pc_select,
     pc_branch,
@@ -144,7 +151,8 @@ wire[31:0] data_address_read; //TODO
     exe_Int,
     exe_bad_inst,
     exe_bc_inst,
-    data_address_read
+    data_address_read,
+	exe_pc_change
     );
 
     wire mem_write, mem_stall;
@@ -156,7 +164,7 @@ wire[31:0] data_address_read; //TODO
     wire[1:0] mem_bc_inst;
     //wire hit;
     wire mem_overflow, mem_Int, mem_bad_inst,addressError_read, addressError_write;
-    MEM mem(clk, mem_write, resetn, wb_flush, wb_stall,
+    MEM mem(clk, mem_write, resetn, wb_flush, 
       mem_pc,
       exe_mem_data,
       exe_busB,
@@ -173,6 +181,7 @@ wire[31:0] data_address_read; //TODO
       exe_cp0_wen,
       exe_cp0_num,
       exe_cp0_sel,
+	  exe_pc_change,
       wb_pc,
       mem_reg_wen,
       mem_reg_num,
@@ -192,16 +201,20 @@ wire[31:0] data_address_read; //TODO
       addressError_write,
       mem_badAddress,
       mem_stall,
+	  pc_change
       );
 
-  assign     wb_rf_wen = mem_rf_wen;
-  assign     wb_rf_wnum  =  mem_rf_wnum;
+  assign     wb_rf_wen = mem_reg_wen;
+  assign     wb_rf_wnum  =  mem_reg_num;
+  assign     wb_cp0_wnum = mem_cp0_num;
+  assign     wb_cp0_wen = mem_cp0_wen;
+  assign     wb_cp0_sel = mem_cp0_sel;
 ExceptionHandler exp(clk, pc_change,
   mem_overflow,
   mem_bad_inst,
    addressError_write,
    addressError_read,
-   mem_badaddress,
+   mem_badAddress,
    wb_pc,
   mem_Int,
   inst_sram_addr,
@@ -213,6 +226,8 @@ ExceptionHandler exp(clk, pc_change,
   wb_cp0_state);
 
   wire pc_write;
+  wire [31:0] pc4;
+  assign pc4 = 0;//if_pc + 4;
 
   assign inst_sram_addr = if_pc;
   PC pc(clk, pc_write, resetn, pc_jump, pc4, pc_branch, pc_epc, except, pc_select, if_pc);

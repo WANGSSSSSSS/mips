@@ -13,7 +13,7 @@ busA = regs[regA];
 busB = regs[regB];
 end
 
-always@(posedge CLK)
+always@(posedge CLK) begin
 if(Write)
 begin
 regs[regWrite][31:24] <= datain[31:24] ;
@@ -31,6 +31,8 @@ regs[16] = 0;regs[17] = 0;regs[18] = 0;regs[19] = 0;
 regs[20] = 0;regs[21] = 0;regs[22] = 0;regs[23] = 0;
 regs[31] = 0;regs[24] = 0;regs[25] = 0;regs[26] = 0;
 regs[27] = 0; regs[28] =0; regs[29]=  0; regs[30] = 0;
+end
+
 end
 endmodule
 

@@ -48,14 +48,14 @@ case(aluop)
 5'b00100 : begin  aluOUT = aluA;                       overflow = 1'b0;                               branch = (aluA >  0); end
 5'b00101 : begin  aluOUT = aluA;                         overflow = 1'b0;                             branch = (aluA <= 0);  end
 5'b00110 : begin  aluOUT = aluA;                          overflow = 1'b0;                           branch = (aluA <  0);   end
-5'b01100 :  begin aluOUT = aluA;   start = !finish; branch=0;  t = 1'b0;end // muti
-5'b01101 :  begin aluOUT = aluA;   start = !finish; branch=0;t = 1'b0;end
-5'b01110 : begin aluOUT = aluA;    start = !finish; branch=0;t = 1'b0;end
-5'b01111 : begin aluOUT = aluA;    start = !finish;  branch=0;t = 1'b0;end   // div
+5'b01100 :  begin aluOUT = aluA;   start = !finish; branch=0;  end // muti
+5'b01101 :  begin aluOUT = aluA;   start = !finish; branch=0;end
+5'b01110 : begin aluOUT = aluA;    start = !finish; branch=0;end
+5'b01111 : begin aluOUT = aluA;    start = !finish;  branch=0;end   // div
 5'b01000 : begin aluOUT = hiOut;  start = 1'b0;         overflow = 1'b0;                               branch=0; end
 5'b01010 : begin aluOUT = loOut;  start = 1'b0;            overflow = 1'b0;                           branch=0; end
-5'b01001 : begin  /*start = !finish;*/      overflow = 1'b0;                               branch=0;t = 1'b0; end
-5'b01011 : begin  /*start = !finish;  */      overflow = 1'b0;                             branch=0; t = 1'b0;end
+5'b01001 : begin  /*start = !finish;*/      overflow = 1'b0;                               branch=0; end
+5'b01011 : begin  /*start = !finish;  */      overflow = 1'b0;                             branch=0; end
 5'b00000 : begin aluOUT = aluA;   start = 1'b0;            overflow = 1'b0;                          branch=0;end
 5'b00111 : begin aluOUT = aluB;    start = 1'b0;            overflow = 1'b0;                         branch=0; end
 default : begin aluOUT = hiOut;  start = 1'b0;         overflow = 1'b0;                               branch=0; end

@@ -1,5 +1,5 @@
 module IF(clk,write, rst,flush,inst,instOut,pc,pcOut);
-input CLK,Write,reset, flush;
+input clk,write,rst, flush;
 input[31:0] inst,pc;
 output [31:0] instOut;
 output reg[31:0] pcOut;

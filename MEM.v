@@ -106,9 +106,10 @@ module MEM(input clk, input write,input rst, input flush,//input hit
   input cp0_wen,
   input [4:0] cp0_num,
   input [2:0] cp0_sel,
+  input pc_change,
 
 
-  output reg[31:0] pc_out;
+  output reg[31:0] pc_out,
   output reg reg_wen_out,
   output reg[4:0] reg_num_out,
   output reg cp0_wen_out,
@@ -117,7 +118,7 @@ module MEM(input clk, input write,input rst, input flush,//input hit
 
   output [31:0] sram_address,
   output [3:0] sram_wen,
-  output [31:0] sram_data_write;
+  output [31:0] sram_data_write,
   //output sram_ren,
   output [31:0]mem_data,
   output reg[31:0]wb_data_out,
@@ -131,9 +132,10 @@ module MEM(input clk, input write,input rst, input flush,//input hit
   output reg addressError_write,
   output reg [31:0]badAddress,
 
-  output stall_out, //TODO
+  output stall_out ,//TODO
+  output reg pc_change_out
 
-   )
+   );
 
     wire addressErrorIn, addressErrorOut;
     wire [31:0] mem_data_, mem_value, sram_data_write_;
@@ -151,9 +153,9 @@ module MEM(input clk, input write,input rst, input flush,//input hit
     assign mem_data = mem_value;
     assign sram_data_write = sram_data_write_;
     assign sram_address  = (address) & {32{!addressErrorIn & !addressErrorOut}};
-    assign sram_wen = sram_wen_ &  {4{!addressErrorOut & !flush});
+    assign sram_wen = sram_wen_ &  {4{!addressErrorOut & !flush}};
 
-    assign stall_out = ({to_stall, memReadEn !=0} == 2'b01) & !addressErrorIn;
+    assign stall_out = ({to_stall,memReadEn!=1'b0} == 2'b01) & !addressErrorIn;
 
     always @ ( posedge clk ) begin
 
@@ -172,8 +174,9 @@ module MEM(input clk, input write,input rst, input flush,//input hit
     cp0_num_out <=  cp0_num;
     badAddress <= address;
     pc_out <= pc;
-    HIT <= hit;
+    //HIT <= hit;
     to_stall <= (memReadEn !=0);
+	pc_change_out <=  pc_change;
     end
 
     if(!rst | stall_out) begin
@@ -183,7 +186,7 @@ module MEM(input clk, input write,input rst, input flush,//input hit
     bc_inst_out <=  0;
     addressError_read <=  0;
     addressError_write <=  0;
-    mem_data_out <= 0;
+    wb_data_out <= 0;
     reg_wen_out <=  0 ;
     reg_num_out <= 0;
     cp0_wen_out <=  0;
@@ -192,6 +195,7 @@ module MEM(input clk, input write,input rst, input flush,//input hit
     badAddress <= 0;
     pc_out <= pc;
     to_stall <= 1'b0;
+	pc_change_out <= 1'b0;
     end
     end
 

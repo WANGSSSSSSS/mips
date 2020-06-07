@@ -15,13 +15,14 @@ module ID(
   input wb_cp0_wen,
   input [2:0] wb_cp0_sel,
   input [4:0] wb_cp0_wnum,
-  output reg [31:0] pc_out;
+  output reg [31:0] pc_out,
   output reg bad_inst,
   output reg epc_inst,
   output reg mem_to_reg,
   output reg [1:0] jump_inst,
   output reg [1:0] bc_inst,
   output reg[4:0] rd_out,
+  output reg[2:0] cp0_sel,
   output reg[4:0] reg_num_out,
   output reg[31:0] immU_out,
   output reg[31:0] immS_out,
@@ -38,8 +39,9 @@ module ID(
   output reg cp0Write_out,
   output reg [3:0] mem_wen_out,
   output reg [3:0] mem_ren_out,
-  output reg[31:0]epc_out
-   )
+  output reg[31:0]epc_out,
+  output reg pc_change
+   );
 
    wire [2:0] sel;
    wire [4:0] rs, rd, rt;
@@ -48,7 +50,7 @@ module ID(
    wire [4:0] shamt;
    wire [31:0] busA, busB, epc, cp0_bus, final_busA, final_busB;
 
- assign rs = inst[15:21];
+ assign rs = inst[25:21];
  assign rt = inst[20:16];
  assign rd = inst[15:11];
  assign imm = inst[15:0];
@@ -71,6 +73,7 @@ CP0 cp0(clk,  wb_cp0_wen, rst, except,
                   wb_cp0_cause,
                   wb_cp0_state,
                   wb_cp0_badAdddress,
+				  rd,
                   wb_cp0_wnum,
                   wb_cp0_sel,
                   epc,
@@ -94,9 +97,10 @@ CP0 cp0(clk,  wb_cp0_wen, rst, except,
         wire       badInst;
   //wire stall;//TODO
   //assign stall = !write;
+  wire pc_change_;
 Control control(  clk,	inst,	aluop,	pc8,	aluBselect,		regWrite,		Cp0Write,
         				MemWrite,	RegToWrite,		MemToReg,		Jump,		epcInst,			B_C,			memReadEn,
-        				aluAselect,		badInst
+        				aluAselect,		badInst , pc_change_
         				);
 wire reg_num;
 select4_5 select_reg(RegToWrite, rd, rt, 5'b11111, 5'b00000, reg_num);
@@ -128,6 +132,8 @@ mem_wen_out <= MemWrite & {4{!flush& !badInst}};
 epc_out <= epc;
 cp0_bus_out <= cp0_bus;
 index_out <= index;
+pc_change <= pc_change_;
+cp0_sel <= sel;
 end
 if(!rst) begin
 pc_out <= 0;
@@ -154,6 +160,8 @@ mem_wen_out <= 0;
 epc_out <= 0;
 cp0_bus_out <= 0;
 index_out <= 0;
+pc_change <= 0;
+cp0_sel <= 0;
 end
 end
 
